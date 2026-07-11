@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Hours &amp; ELR Increase — What-If Calculator</title>
+<meta name="theme-color" content="#0f172a" />
+<!-- Add-to-Home-Screen support (iPhone) -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="ELR What-If" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="icon" href="icon.svg" />
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #273449;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #22c55e;
+    --input-bg: #0f1b2e;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 70% -10%, #16233b 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 28px 24px 8px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 16px 24px 60px;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card h2 {
+    margin: 0;
+    padding: 14px 18px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .card .body { padding: 8px 18px 18px; }
+
+  .field { margin-top: 14px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .input-line { position: relative; display: flex; align-items: center; }
+  .input-line .prefix, .input-line .suffix {
+    position: absolute; color: var(--muted); font-size: 14px; pointer-events: none;
+  }
+  .input-line .prefix { left: 12px; }
+  .input-line .suffix { right: 12px; }
+  input[type="number"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input.has-prefix { padding-left: 26px; }
+  input.has-suffix { padding-right: 30px; }
+  input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56,189,248,.15);
+  }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .divider { height: 1px; background: var(--border); margin: 18px -18px 0; }
+  .section-label {
+    margin-top: 16px; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--muted); font-weight: 600;
+  }
+
+  /* Results */
+  .hero {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+    border: 1px solid #0f766e;
+  }
+  .hero h2 { color: #a7f3d0; background: transparent; border-bottom-color: rgba(255,255,255,.1); }
+  .hero .amount {
+    font-size: 46px; font-weight: 800; letter-spacing: -1px; color: #ecfdf5;
+    padding: 6px 0 2px;
+  }
+  .hero .sub { color: #a7f3d0; font-size: 14px; }
+  .hero .mo { color: #d1fae5; font-size: 14px; margin-top: 10px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+  @media (max-width: 620px) { .kpis { grid-template-columns: 1fr; } }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .kpi .val { font-size: 22px; font-weight: 700; margin-top: 6px; }
+  .kpi.elr .val { color: #38bdf8; }
+  .kpi.labor .val { color: #a78bfa; }
+  .kpi.parts .val { color: #fbbf24; }
+
+  /* Waterfall table */
+  .flow { margin-top: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table th, table td { text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  table th:first-child, table td:first-child { text-align: left; color: var(--muted); }
+  table thead th { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  table td.result { color: var(--text); font-weight: 600; }
+  table tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 700; }
+  .op { color: var(--muted); }
+
+  footer { max-width: 1180px; margin: 0 auto; padding: 0 24px 40px; color: var(--muted); font-size: 12px; }
+  .reset {
+    margin-top: 18px; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 9px; padding: 9px 14px;
+    font-size: 13px; cursor: pointer; transition: background .15s;
+  }
+  .reset:hover { background: #31435e; }
+
+  /* Mode toggle (Manual / Goal Seek) */
+  .section-head {
+    margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .section-head .section-label { margin-top: 0; }
+  .mode-toggle {
+    display: inline-flex; background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 3px;
+  }
+  .mode-btn {
+    border: 0; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px;
+    transition: background .15s, color .15s;
+  }
+  .mode-btn.active { background: var(--accent); color: #04222e; }
+
+  /* Goal Seek controls */
+  input[type="range"].slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px; border-radius: 999px; outline: none; margin: 10px 0 4px;
+    background: linear-gradient(90deg, #a78bfa 0%, #38bdf8 100%);
+  }
+  input[type="range"].slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #e2e8f0; border: 2px solid var(--bg);
+    box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer; margin-top: -8px;
+  }
+  input[type="range"].slider::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #e2e8f0; border: 2px solid var(--bg);
+    box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer;
+  }
+  .slider-ends {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+  }
+  .slider-ends .mix-now { color: var(--text); font-weight: 600; font-size: 12px; }
+  .goal-out {
+    margin-top: 14px; background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px 14px;
+  }
+  .goal-out-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; font-size: 13px; color: var(--muted);
+  }
+  .goal-out-row + .goal-out-row { border-top: 1px solid var(--border); }
+  .goal-out-row .goal-val { font-size: 18px; font-weight: 700; color: var(--text); }
+  #outELR { color: #38bdf8; }
+  #outHours { color: #a78bfa; }
+  .goal-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Hours &amp; ELR Increase Sheet</h1>
+    <p>Fixed Ops what-if calculator — model the added gross profit from raising your effective labor rate and hours per RO.</p>
+  </header>
+
+  <div class="wrap">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Assumptions</h2>
+      <div class="body">
+        <div class="section-label">Shop Baseline</div>
+
+        <div class="field">
+          <label>C.P. RO Count Per Month</label>
+          <div class="input-line"><input type="number" inputmode="decimal" id="roCount" step="1" /></div>
+        </div>
+
+        <div class="field">
+          <label>C.P. Hours Per Month</label>
+          <div class="input-line"><input type="number" inputmode="decimal" id="cpHours" step="1" /></div>
+          <div class="hint">= <span id="hoursPerRO">–</span> hours per RO</div>
+        </div>
+
+        <div class="field">
+          <label>Current ELR (Effective Labor Rate)</label>
+          <div class="input-line">
+            <span class="prefix">$</span>
+            <input type="number" inputmode="decimal" id="currentELR" class="has-prefix" step="1" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Gross Profit Rates</div>
+
+        <div class="field">
+          <label>Labor Gross Profit %</label>
+          <div class="input-line">
+            <input type="number" inputmode="decimal" id="laborGP" class="has-suffix" step="1" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Parts Gross Profit %</label>
+          <div class="input-line">
+            <input type="number" inputmode="decimal" id="partsGP" class="has-suffix" step="1" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Parts to Labor Ratio</label>
+          <div class="input-line">
+            <input type="number" inputmode="decimal" id="partsToLabor" class="has-suffix" step="1" />
+            <span class="suffix">%</span>
+          </div>
+          <div class="hint">Parts sales as a % of labor sales.</div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-head">
+          <div class="section-label">What-If Levers</div>
+          <div class="mode-toggle" id="modeToggle">
+            <button type="button" class="mode-btn active" data-mode="manual">Manual</button>
+            <button type="button" class="mode-btn" data-mode="goal">Goal Seek</button>
+          </div>
+        </div>
+
+        <!-- GOAL SEEK: enter a target, let the slider trade ELR vs Hours -->
+        <div id="goalControls" hidden>
+          <div class="field">
+            <label>Target Additional Gross Profit / Year</label>
+            <div class="input-line">
+              <span class="prefix">$</span>
+              <input type="number" inputmode="decimal" id="targetGP" class="has-prefix" step="1000" />
+            </div>
+            <div class="hint">The annual GP goal you want to reach.</div>
+          </div>
+
+          <div class="field">
+            <label>Mix — where the gains come from</label>
+            <input type="range" id="mixSlider" class="slider" min="0" max="100" step="1" value="50" />
+            <div class="slider-ends">
+              <span>All Hours</span>
+              <span class="mix-now" id="mixNow">50% Hours · 50% ELR</span>
+              <span>All ELR</span>
+            </div>
+          </div>
+
+          <div class="goal-out">
+            <div class="goal-out-row">
+              <span>Required ELR increase</span>
+              <span class="goal-val" id="outELR">$0</span>
+            </div>
+            <div class="goal-out-row">
+              <span>Required Hours / RO increase</span>
+              <span class="goal-val" id="outHours">0</span>
+            </div>
+          </div>
+          <div class="goal-note" id="goalNote"></div>
+        </div>
+
+        <!-- MANUAL: enter the levers directly -->
+        <div id="manualControls">
+          <div class="field">
+            <label>Desired C.P. ELR Increase</label>
+            <div class="input-line">
+              <span class="prefix">$</span>
+              <input type="number" inputmode="decimal" id="elrIncrease" class="has-prefix" step="0.5" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Desired Hours Per RO Increase</label>
+            <div class="input-line"><input type="number" inputmode="decimal" id="hoursIncrease" step="0.1" /></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Months (projection period)</label>
+          <div class="input-line"><input type="number" inputmode="decimal" id="months" step="1" /></div>
+        </div>
+
+        <button class="reset" id="reset">Reset to defaults</button>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div>
+      <div class="card hero">
+        <h2>Additional Gross Profit Per Year</h2>
+        <div class="body">
+          <div class="amount" id="gpYear">$0</div>
+          <div class="sub">Projected over <span id="monthsLabel">12</span> months</div>
+          <div class="mo">≈ <span id="gpMonth">$0</span> in additional gross profit per month</div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi elr">
+          <div class="label">GP from ELR Increase</div>
+          <div class="val" id="kpiELR">$0</div>
+        </div>
+        <div class="kpi labor">
+          <div class="label">Labor GP from Hours</div>
+          <div class="val" id="kpiLabor">$0</div>
+        </div>
+        <div class="kpi parts">
+          <div class="label">Parts GP from Hours</div>
+          <div class="val" id="kpiParts">$0</div>
+        </div>
+      </div>
+
+      <div class="card flow">
+        <h2>Calculation Waterfall</h2>
+        <div class="body" style="padding-top:0;">
+          <table>
+            <thead>
+              <tr><th>Step</th><th>Base</th><th></th><th>Factor</th><th>Result</th></tr>
+            </thead>
+            <tbody id="flowBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    C.P. = Customer Pay · ELR = Effective Labor Rate · RO = Repair Order.
+    All figures are estimates based on the assumptions entered above.
+  </footer>
+
+<script>
+  const DEFAULTS = {
+    roCount: 1250,
+    cpHours: 1500,
+    currentELR: 100,
+    laborGP: 72,        // %
+    partsGP: 38,        // %
+    partsToLabor: 90,   // %
+    elrIncrease: 3,
+    hoursIncrease: 0.3,
+    months: 12,
+    targetGP: 500000
+  };
+
+  const ids = Object.keys(DEFAULTS);
+  const el = id => document.getElementById(id);
+
+  const usd = (n, dec = 0) => new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: dec, maximumFractionDigits: dec
+  }).format(isFinite(n) ? n : 0);
+  // Currency for rate values (ELR): shows cents only when present, e.g. $3.50, $103.50, $3
+  const usdRate = n => new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: 0, maximumFractionDigits: 2
+  }).format(isFinite(n) ? n : 0);
+  const num = (n, dec = 0) => new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: dec, maximumFractionDigits: dec
+  }).format(isFinite(n) ? n : 0);
+
+  function readInputs() {
+    const v = {};
+    for (const id of ids) v[id] = parseFloat(el(id).value) || 0;
+    return v;
+  }
+
+  function compute(i) {
+    const laborGP = i.laborGP / 100;
+    const partsGP = i.partsGP / 100;
+    const partsToLabor = i.partsToLabor / 100;
+
+    // Lever 1 — ELR increase applied to existing C.P. hours
+    const addlSalesELR = i.cpHours * i.elrIncrease;          // Additional Sales $
+    const gpFromELR = addlSalesELR * laborGP;                // Gross Profit from ELR Increase
+
+    // Lever 2 — more hours per RO
+    const addlHours = i.roCount * i.hoursIncrease;           // Additional Hours Per Month
+    const elrWithIncrease = i.currentELR + i.elrIncrease;    // C.P. ELR w/ Increase
+    const addlLaborSales = addlHours * elrWithIncrease;      // Additional Labor Sales $
+    const laborGPfromHours = addlLaborSales * laborGP;       // Labor GP $ (from Hours Increase)
+    const addlPartsSales = addlLaborSales * partsToLabor;    // Additional Parts Sales $
+    const partsGPdollars = addlPartsSales * partsGP;         // Parts Gross Profit $
+
+    // Totals
+    const monthlyGP = gpFromELR + laborGPfromHours + partsGPdollars;
+    const yearlyGP = monthlyGP * i.months;
+
+    return { addlSalesELR, gpFromELR, addlHours, elrWithIncrease, addlLaborSales,
+             laborGPfromHours, addlPartsSales, partsGPdollars, monthlyGP, yearlyGP };
+  }
+
+  function render() {
+    const i = readInputs();
+    const r = compute(i);
+
+    el('hoursPerRO').textContent = i.roCount ? num(i.cpHours / i.roCount, 2) : '–';
+
+    el('gpYear').textContent = usd(r.yearlyGP);
+    el('gpMonth').textContent = usd(r.monthlyGP);
+    el('monthsLabel').textContent = num(i.months);
+
+    el('kpiELR').textContent = usd(r.gpFromELR);
+    el('kpiLabor').textContent = usd(r.laborGPfromHours);
+    el('kpiParts').textContent = usd(r.partsGPdollars);
+
+    const rows = [
+      ['Additional Sales $ (ELR lift)', num(i.cpHours) + ' hrs', '×', usdRate(i.elrIncrease) + ' ELR', usd(r.addlSalesELR)],
+      ['Gross Profit from ELR Increase', usd(r.addlSalesELR), '×', i.laborGP + '% labor GP', usd(r.gpFromELR)],
+      ['Additional Hours Per Month', num(i.roCount) + ' ROs', '×', num(i.hoursIncrease, 2) + ' hrs/RO', num(r.addlHours, 1) + ' hrs'],
+      ['Additional Labor Sales $', num(r.addlHours, 1) + ' hrs', '×', usdRate(r.elrWithIncrease) + ' ELR', usd(r.addlLaborSales)],
+      ['Labor GP from Hours', usd(r.addlLaborSales), '×', i.laborGP + '% labor GP', usd(r.laborGPfromHours)],
+      ['Additional Parts Sales $', usd(r.addlLaborSales), '×', i.partsToLabor + '% P:L', usd(r.addlPartsSales)],
+      ['Parts Gross Profit $', usd(r.addlPartsSales), '×', i.partsGP + '% parts GP', usd(r.partsGPdollars)],
+    ];
+
+    const body = el('flowBody');
+    body.innerHTML = rows.map(row =>
+      `<tr><td>${row[0]}</td><td>${row[1]}</td><td class="op">${row[2]}</td><td>${row[3]}</td><td class="result">${row[4]}</td></tr>`
+    ).join('') +
+      `<tr class="total"><td>Total Gross Profit / Month</td><td></td><td class="op">×</td><td>${num(i.months)} months</td><td class="result">${usd(r.yearlyGP)}</td></tr>`;
+  }
+
+  // ---- Goal Seek (reverse the math) ----
+  let mode = 'manual';
+
+  // Solve for the ELR increase and Hours/RO increase that hit the target GP,
+  // splitting the goal between the two levers by the slider fraction f
+  // (f = share of the target coming from ELR; 1 - f from hours).
+  function solveGoal() {
+    const i = readInputs();
+    const laborGP = i.laborGP / 100;
+    const partsGP = i.partsGP / 100;
+    const partsToLabor = i.partsToLabor / 100;
+    const months = i.months || 1;
+    const f = (parseFloat(el('mixSlider').value) || 0) / 100;
+
+    const monthlyTarget = (i.targetGP || 0) / months;
+    const A = i.cpHours * laborGP;                          // GP per $1 of ELR increase
+    const K = i.roCount * (laborGP + partsToLabor * partsGP); // GP per (hr × ELR)
+
+    let e = 0, h = 0;
+    let note = '';
+
+    if (A > 0) e = (f * monthlyTarget) / A;
+    else if (f > 0) note = 'ELR can’t contribute (labor hours or labor GP% is 0) — shifting the goal to hours.';
+
+    // Whatever the ELR lever couldn’t cover must come from the hours lever.
+    const remainingGP = monthlyTarget - A * e;
+    const denom = K * (i.currentELR + e);
+    if (denom > 0) h = remainingGP / denom;
+    else if (remainingGP > 0) note = 'Hours can’t contribute (RO count, ELR, or GP rates are 0) — goal isn’t reachable with these inputs.';
+
+    // Feed the computed levers into the shared inputs so KPIs + waterfall update.
+    el('elrIncrease').value = isFinite(e) && e > 0 ? +e.toFixed(4) : 0;
+    el('hoursIncrease').value = isFinite(h) && h > 0 ? +h.toFixed(4) : 0;
+
+    el('outELR').textContent = usdRate(Math.max(e, 0));
+    el('outHours').textContent = num(Math.max(h, 0), 2);
+    el('mixNow').textContent = `${Math.round((1 - f) * 100)}% Hours · ${Math.round(f * 100)}% ELR`;
+    el('goalNote').textContent = note;
+
+    render();
+  }
+
+  function onInput() {
+    if (mode === 'goal') solveGoal();
+    else render();
+  }
+
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.mode-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.mode === m));
+    el('goalControls').hidden = m !== 'goal';
+    el('manualControls').hidden = m !== 'manual';
+    onInput();
+  }
+
+  function setDefaults() {
+    for (const id of ids) el(id).value = DEFAULTS[id];
+    el('mixSlider').value = 50;
+    setMode('manual');
+  }
+
+  ids.forEach(id => el(id).addEventListener('input', onInput));
+  el('mixSlider').addEventListener('input', solveGoal);
+  document.querySelectorAll('.mode-btn').forEach(b =>
+    b.addEventListener('click', () => setMode(b.dataset.mode)));
+  el('reset').addEventListener('click', setDefaults);
+
+  setDefaults();
+</script>
+</body>
+</html>

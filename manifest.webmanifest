@@ -1,0 +1,12 @@
+{
+  "name": "Hours & ELR Increase — What-If Calculator",
+  "short_name": "ELR What-If",
+  "description": "Fixed Ops what-if calculator for added gross profit from ELR and hours-per-RO increases.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
