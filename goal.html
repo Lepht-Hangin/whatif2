@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Gross Profit Goal Planner — Fixed Ops</title>
+<meta name="theme-color" content="#0f172a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="GP Goal" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="icon" href="icon.svg" />
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #273449;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #22c55e;
+    --input-bg: #0f1b2e;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 70% -10%, #16233b 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 28px 24px 8px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+  /* Cross-page nav */
+  .tabs { display: flex; gap: 8px; margin-top: 14px; }
+  .tab {
+    text-decoration: none; color: var(--muted); font-size: 13px; font-weight: 600;
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--panel); transition: color .15s, border-color .15s, background .15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: #04222e; background: var(--accent); border-color: var(--accent); }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 16px 24px 60px;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card h2 {
+    margin: 0;
+    padding: 14px 18px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .card .body { padding: 8px 18px 18px; }
+
+  .field { margin-top: 14px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .input-line { position: relative; display: flex; align-items: center; }
+  .input-line .prefix, .input-line .suffix {
+    position: absolute; color: var(--muted); font-size: 14px; pointer-events: none;
+  }
+  .input-line .prefix { left: 12px; }
+  .input-line .suffix { right: 12px; }
+  input[type="number"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input.has-prefix { padding-left: 26px; }
+  input.has-suffix { padding-right: 30px; }
+  input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56,189,248,.15);
+  }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .divider { height: 1px; background: var(--border); margin: 18px -18px 0; }
+  .section-label {
+    margin-top: 16px; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--muted); font-weight: 600;
+  }
+
+  /* Segmented toggle (Monthly / Annual) */
+  .seg { display: inline-flex; background: var(--input-bg); border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px;
+    transition: background .15s, color .15s;
+  }
+  .seg button.active { background: var(--accent); color: #04222e; }
+
+  /* Sliders */
+  input[type="range"].slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px; border-radius: 999px; outline: none; margin: 12px 0 4px;
+    background: linear-gradient(90deg, #a78bfa 0%, #38bdf8 100%);
+  }
+  input[type="range"].slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #e2e8f0; border: 2px solid var(--bg);
+    box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer; margin-top: -8px;
+  }
+  input[type="range"].slider::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #e2e8f0; border: 2px solid var(--bg);
+    box-shadow: 0 2px 6px rgba(0,0,0,.45); cursor: pointer;
+  }
+  input[type="range"].slider:disabled { opacity: .55; cursor: default; }
+  input[type="range"].slider:disabled::-webkit-slider-thumb { cursor: default; background: #a7f3d0; }
+  input[type="range"].slider:disabled::-moz-range-thumb { cursor: default; background: #a7f3d0; }
+
+  /* Driver rows */
+  .driver {
+    margin-top: 14px; padding: 12px 14px;
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 11px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .driver.solved { border-color: var(--accent-2); box-shadow: 0 0 0 2px rgba(34,197,94,.18); }
+  .driver-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .driver-name { font-size: 13px; color: var(--muted); }
+  .driver.solved .driver-name { color: var(--text); }
+  .driver-val { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .driver.solved .driver-val { color: var(--accent-2); }
+  .solve-btn {
+    flex: none; border: 1px solid var(--border); background: transparent; color: var(--muted);
+    font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+    padding: 5px 9px; border-radius: 999px; cursor: pointer; transition: all .15s;
+  }
+  .solve-btn:hover { color: var(--text); border-color: var(--muted); }
+  .driver.solved .solve-btn { background: var(--accent-2); border-color: var(--accent-2); color: #04220f; }
+  .driver-note { font-size: 11px; color: #fbbf24; margin-top: 6px; min-height: 0; }
+
+  /* Results */
+  .hero {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+    border: 1px solid #0f766e;
+  }
+  .hero h2 { color: #a7f3d0; background: transparent; border-bottom-color: rgba(255,255,255,.1); }
+  .hero .amount {
+    font-size: 46px; font-weight: 800; letter-spacing: -1px; color: #ecfdf5;
+    padding: 6px 0 2px;
+  }
+  .hero .sub { color: #a7f3d0; font-size: 14px; }
+  .hero .mo { color: #d1fae5; font-size: 14px; margin-top: 10px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
+  @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 420px) { .kpis { grid-template-columns: 1fr; } }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .kpi.hot { border-color: var(--accent-2); box-shadow: 0 0 0 2px rgba(34,197,94,.15); }
+  .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .kpi .val { font-size: 22px; font-weight: 700; margin-top: 6px; }
+  .kpi.ro .val { color: #38bdf8; }
+  .kpi.hrsro .val { color: #a78bfa; }
+  .kpi.hours .val { color: #22c55e; }
+  .kpi.elr .val { color: #fbbf24; }
+
+  .kpi-note { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .kpi.hot .kpi-note { color: #a7f3d0; }
+
+  /* Waterfall table */
+  .flow { margin-top: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table th, table td { text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  table th:first-child, table td:first-child { text-align: left; color: var(--muted); }
+  table thead th { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  table td.result { color: var(--text); font-weight: 600; }
+  table tr.total td { border-top: 2px solid var(--border); border-bottom: none; font-weight: 700; }
+  .op { color: var(--muted); }
+
+  footer { max-width: 1180px; margin: 0 auto; padding: 0 24px 40px; color: var(--muted); font-size: 12px; }
+  .reset {
+    margin-top: 18px; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 9px; padding: 9px 14px;
+    font-size: 13px; cursor: pointer; transition: background .15s;
+  }
+  .reset:hover { background: #31435e; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Gross Profit Goal Planner</h1>
+    <p>Set a gross-profit target and see the ROs, hours, and ELR it takes to hit it — then slide any driver and watch the rest re-solve on the fly.</p>
+    <nav class="tabs">
+      <a class="tab" href="index.html">What-If Calculator</a>
+      <a class="tab active" href="goal.html">Goal Planner</a>
+    </nav>
+  </header>
+
+  <div class="wrap">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Plan</h2>
+      <div class="body">
+        <div class="section-label">Target</div>
+
+        <div class="field">
+          <label>Gross Profit Goal</label>
+          <div class="input-line">
+            <span class="prefix">$</span>
+            <input type="number" inputmode="decimal" id="target" class="has-prefix" step="1000" />
+          </div>
+          <div class="hint" style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <span id="targetEquiv">–</span>
+            <span class="seg" id="periodToggle">
+              <button type="button" data-period="monthly" class="active">Monthly</button>
+              <button type="button" data-period="annual">Annual</button>
+            </span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Gross Profit Rates</div>
+
+        <div class="field">
+          <label>Labor Gross Profit %</label>
+          <div class="input-line">
+            <input type="number" inputmode="decimal" id="laborGP" class="has-suffix" step="1" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Parts Gross Profit %</label>
+          <div class="input-line">
+            <input type="number" inputmode="decimal" id="partsGP" class="has-suffix" step="1" />
+            <span class="suffix">%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Parts to Labor Ratio</label>
+          <div class="input-line">
+            <input type="number" inputmode="decimal" id="partsToLabor" class="has-suffix" step="1" />
+            <span class="suffix">%</span>
+          </div>
+          <div class="hint">Parts sales as a % of labor sales.</div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-label">Drivers — tap “Solve” on the one to calculate, slide the rest</div>
+
+        <!-- RO Count -->
+        <div class="driver" id="driverR">
+          <div class="driver-top">
+            <div>
+              <div class="driver-name">C.P. RO Count / Month</div>
+              <div class="driver-val" id="valR">–</div>
+            </div>
+            <button type="button" class="solve-btn" data-solve="R">Solve</button>
+          </div>
+          <input type="range" class="slider" id="sliderR" min="0" max="2000" step="1" />
+          <div class="driver-note" id="noteR"></div>
+        </div>
+
+        <!-- Hours per RO -->
+        <div class="driver" id="driverH">
+          <div class="driver-top">
+            <div>
+              <div class="driver-name">Hours per RO</div>
+              <div class="driver-val" id="valH">–</div>
+            </div>
+            <button type="button" class="solve-btn" data-solve="H">Solve</button>
+          </div>
+          <input type="range" class="slider" id="sliderH" min="0" max="4" step="0.05" />
+          <div class="driver-note" id="noteH"></div>
+        </div>
+
+        <!-- ELR -->
+        <div class="driver" id="driverE">
+          <div class="driver-top">
+            <div>
+              <div class="driver-name">Effective Labor Rate (ELR)</div>
+              <div class="driver-val" id="valE">–</div>
+            </div>
+            <button type="button" class="solve-btn" data-solve="E">Solve</button>
+          </div>
+          <input type="range" class="slider" id="sliderE" min="0" max="300" step="1" />
+          <div class="driver-note" id="noteE"></div>
+        </div>
+
+        <button class="reset" id="reset">Reset to defaults</button>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div>
+      <div class="card hero">
+        <h2>Gross Profit Goal</h2>
+        <div class="body">
+          <div class="amount" id="goalAmount">$0</div>
+          <div class="sub" id="goalSub">per month</div>
+          <div class="mo" id="goalCheck">On target ✓</div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi ro" id="kpiR">
+          <div class="label">RO Count / mo</div>
+          <div class="val" id="kR">0</div>
+          <div class="kpi-note" id="kRnote"></div>
+        </div>
+        <div class="kpi hrsro" id="kpiH">
+          <div class="label">Hours per RO</div>
+          <div class="val" id="kH">0</div>
+          <div class="kpi-note" id="kHnote"></div>
+        </div>
+        <div class="kpi hours">
+          <div class="label">Total Hours Sold / mo</div>
+          <div class="val" id="kHours">0</div>
+          <div class="kpi-note">R × Hours/RO</div>
+        </div>
+        <div class="kpi elr" id="kpiE">
+          <div class="label">ELR</div>
+          <div class="val" id="kE">$0</div>
+          <div class="kpi-note" id="kEnote"></div>
+        </div>
+      </div>
+
+      <div class="card flow">
+        <h2>How the Goal Is Built</h2>
+        <div class="body" style="padding-top:0;">
+          <table>
+            <thead>
+              <tr><th>Step</th><th>Base</th><th></th><th>Factor</th><th>Result</th></tr>
+            </thead>
+            <tbody id="flowBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    C.P. = Customer Pay · ELR = Effective Labor Rate · RO = Repair Order.
+    Total GP = ROs × Hours/RO × ELR × (Labor GP% + Parts:Labor% × Parts GP%). All figures are estimates.
+  </footer>
+
+<script>
+  const DEFAULTS = {
+    target: 50000,
+    period: 'monthly',
+    laborGP: 72,        // %
+    partsGP: 38,        // %
+    partsToLabor: 90,   // %
+    R: 400,             // ROs / month
+    H: 1.2,             // hours per RO
+    E: 100,             // ELR $
+    solveFor: 'R'
+  };
+
+  const el = id => document.getElementById(id);
+
+  const usd = (n, dec = 0) => new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: dec, maximumFractionDigits: dec
+  }).format(isFinite(n) ? n : 0);
+  const usdRate = n => new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: 0, maximumFractionDigits: 2
+  }).format(isFinite(n) ? n : 0);
+  const num = (n, dec = 0) => new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: dec, maximumFractionDigits: dec
+  }).format(isFinite(n) ? n : 0);
+
+  // Mutable state for the three drivers + which one is solved.
+  let R = DEFAULTS.R, H = DEFAULTS.H, E = DEFAULTS.E;
+  let solveFor = DEFAULTS.solveFor;
+  let period = DEFAULTS.period;
+
+  const drivers = {
+    R: { row: 'driverR', slider: 'sliderR', val: 'valR', note: 'noteR', max: 2000 },
+    H: { row: 'driverH', slider: 'sliderH', val: 'valH', note: 'noteH', max: 4 },
+    E: { row: 'driverE', slider: 'sliderE', val: 'valE', note: 'noteE', max: 300 }
+  };
+
+  const fmtDriver = {
+    R: v => num(v, 0),
+    H: v => num(v, 2) + ' hrs',
+    E: v => usdRate(v)
+  };
+
+  function rates() {
+    const laborGP = (parseFloat(el('laborGP').value) || 0) / 100;
+    const partsGP = (parseFloat(el('partsGP').value) || 0) / 100;
+    const p2l = (parseFloat(el('partsToLabor').value) || 0) / 100;
+    const M = laborGP + p2l * partsGP;   // gross profit per $1 of labor sales
+    return { laborGP, partsGP, p2l, M };
+  }
+
+  function monthlyTarget() {
+    const t = parseFloat(el('target').value) || 0;
+    return period === 'annual' ? t / 12 : t;
+  }
+
+  function render() {
+    const { laborGP, partsGP, p2l, M } = rates();
+    const T = monthlyTarget();
+
+    // Non-solved drivers live in R/H/E state (updated by their slider handlers),
+    // so switching which driver is solved keeps the others at their exact values.
+
+    // Solve the chosen driver so Total GP == target.
+    let solveNote = '';
+    if (solveFor === 'R') {
+      const d = H * E * M; R = d > 0 ? T / d : Infinity;
+    } else if (solveFor === 'H') {
+      const d = R * E * M; H = d > 0 ? T / d : Infinity;
+    } else {
+      const d = R * H * M; E = d > 0 ? T / d : Infinity;
+    }
+
+    // Reflect the solved value on its (disabled) slider; clamp the thumb to range.
+    const cfg = drivers[solveFor];
+    const solvedVal = (solveFor === 'R') ? R : (solveFor === 'H') ? H : E;
+    if (!isFinite(solvedVal)) {
+      solveNote = 'Set the other two drivers above zero to solve this.';
+    } else if (solvedVal > cfg.max) {
+      solveNote = 'Exceeds the slider range — the number to the right is still exact.';
+    }
+
+    // Recompute the KPI chain from final R, H, E.
+    const hours = R * H;
+    const laborSales = hours * E;
+    const partsSales = laborSales * p2l;
+    const laborGPd = laborSales * laborGP;
+    const partsGPd = partsSales * partsGP;
+    const totalGP = laborGPd + partsGPd;
+
+    // --- Driver rows (left panel) ---
+    for (const key of ['R', 'H', 'E']) {
+      const c = drivers[key];
+      const isSolved = key === solveFor;
+      const v = key === 'R' ? R : key === 'H' ? H : E;
+      el(c.row).classList.toggle('solved', isSolved);
+      el(c.slider).disabled = isSolved;
+      el(c.slider).value = isFinite(v) ? Math.min(Math.max(v, 0), c.max) : 0;
+      el(c.row).querySelector('.solve-btn').textContent = isSolved ? 'Solving' : 'Solve';
+      el(c.val).textContent = isFinite(v) ? fmtDriver[key](v) : '–';
+      el(c.note).textContent = isSolved ? solveNote : '';
+    }
+
+    // --- Hero ---
+    el('goalAmount').textContent = usd(parseFloat(el('target').value) || 0);
+    el('goalSub').textContent = period === 'annual' ? 'per year' : 'per month';
+    el('targetEquiv').textContent = period === 'annual'
+      ? '≈ ' + usd(T) + ' / month'
+      : '≈ ' + usd(T * 12) + ' / year';
+    el('goalCheck').textContent = isFinite(totalGP)
+      ? 'Plan yields ' + usd(totalGP) + (period === 'annual' ? ' / mo' : '') + ' — on target ✓'
+      : 'Adjust the drivers to reach the goal';
+
+    // --- KPI cards ---
+    el('kR').textContent = isFinite(R) ? num(R, 0) : '–';
+    el('kH').textContent = isFinite(H) ? num(H, 2) : '–';
+    el('kHours').textContent = isFinite(hours) ? num(hours, 0) : '–';
+    el('kE').textContent = isFinite(E) ? usdRate(E) : '–';
+
+    el('kpiR').classList.toggle('hot', solveFor === 'R');
+    el('kpiH').classList.toggle('hot', solveFor === 'H');
+    el('kpiE').classList.toggle('hot', solveFor === 'E');
+    el('kRnote').textContent = solveFor === 'R' ? 'Needed to hit goal' : 'Your input';
+    el('kHnote').textContent = solveFor === 'H' ? 'Needed to hit goal' : 'Your input';
+    el('kEnote').textContent = solveFor === 'E' ? 'Needed to hit goal' : 'Your input';
+
+    // --- Waterfall ---
+    const lg = num(parseFloat(el('laborGP').value) || 0);
+    const pg = num(parseFloat(el('partsGP').value) || 0);
+    const pl = num(parseFloat(el('partsToLabor').value) || 0);
+    const rows = [
+      ['Total Hours Sold', num(R, 0) + ' ROs', '×', num(H, 2) + ' hrs/RO', num(hours, 1) + ' hrs'],
+      ['Labor Sales $', num(hours, 1) + ' hrs', '×', usdRate(E) + ' ELR', usd(laborSales)],
+      ['Labor Gross Profit', usd(laborSales), '×', lg + '% GP', usd(laborGPd)],
+      ['Parts Sales $', usd(laborSales), '×', pl + '% P:L', usd(partsSales)],
+      ['Parts Gross Profit', usd(partsSales), '×', pg + '% GP', usd(partsGPd)],
+    ];
+    el('flowBody').innerHTML = rows.map(row =>
+      `<tr><td>${row[0]}</td><td>${row[1]}</td><td class="op">${row[2]}</td><td>${row[3]}</td><td class="result">${row[4]}</td></tr>`
+    ).join('') +
+      `<tr class="total"><td>Total Gross Profit / Month</td><td></td><td class="op">=</td><td>labor + parts</td><td class="result">${usd(totalGP)}</td></tr>`;
+  }
+
+  function setSolveFor(key) {
+    solveFor = key;
+    render();
+  }
+
+  function setPeriod(p) {
+    period = p;
+    document.querySelectorAll('#periodToggle button').forEach(b =>
+      b.classList.toggle('active', b.dataset.period === p));
+    render();
+  }
+
+  function setDefaults() {
+    el('target').value = DEFAULTS.target;
+    el('laborGP').value = DEFAULTS.laborGP;
+    el('partsGP').value = DEFAULTS.partsGP;
+    el('partsToLabor').value = DEFAULTS.partsToLabor;
+    el('sliderR').value = DEFAULTS.R;
+    el('sliderH').value = DEFAULTS.H;
+    el('sliderE').value = DEFAULTS.E;
+    R = DEFAULTS.R; H = DEFAULTS.H; E = DEFAULTS.E;
+    setPeriod(DEFAULTS.period);
+    setSolveFor(DEFAULTS.solveFor);
+  }
+
+  // Wiring
+  ['target', 'laborGP', 'partsGP', 'partsToLabor'].forEach(id =>
+    el(id).addEventListener('input', render));
+  el('sliderR').addEventListener('input', e => { R = parseFloat(e.target.value) || 0; render(); });
+  el('sliderH').addEventListener('input', e => { H = parseFloat(e.target.value) || 0; render(); });
+  el('sliderE').addEventListener('input', e => { E = parseFloat(e.target.value) || 0; render(); });
+  document.querySelectorAll('.solve-btn').forEach(b =>
+    b.addEventListener('click', () => setSolveFor(b.dataset.solve)));
+  document.querySelectorAll('#periodToggle button').forEach(b =>
+    b.addEventListener('click', () => setPeriod(b.dataset.period)));
+  el('reset').addEventListener('click', setDefaults);
+
+  setDefaults();
+</script>
+</body>
+</html>

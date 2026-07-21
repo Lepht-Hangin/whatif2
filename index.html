@@ -48,6 +48,16 @@
   }
   header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
 
+  /* Cross-page nav */
+  .tabs { display: flex; gap: 8px; margin-top: 14px; }
+  .tab {
+    text-decoration: none; color: var(--muted); font-size: 13px; font-weight: 600;
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--panel); transition: color .15s, border-color .15s, background .15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: #04222e; background: var(--accent); border-color: var(--accent); }
+
   .wrap {
     max-width: 1180px;
     margin: 0 auto;
@@ -216,6 +226,10 @@
   <header>
     <h1>Hours &amp; ELR Increase Sheet</h1>
     <p>Fixed Ops what-if calculator — model the added gross profit from raising your effective labor rate and hours per RO.</p>
+    <nav class="tabs">
+      <a class="tab active" href="index.html">What-If Calculator</a>
+      <a class="tab" href="goal.html">Goal Planner</a>
+    </nav>
   </header>
 
   <div class="wrap">
