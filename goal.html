@@ -187,6 +187,16 @@
   }
   .hero .sub { color: #a7f3d0; font-size: 14px; }
   .hero .mo { color: #d1fae5; font-size: 14px; margin-top: 10px; }
+  .hero .daily {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.14);
+    color: #d1fae5; font-size: 14px; line-height: 1.6;
+  }
+  .hero .daily .dhead {
+    display: block; color: #a7f3d0; text-transform: uppercase;
+    letter-spacing: .5px; font-size: 11px; margin-bottom: 3px;
+  }
+  .hero .daily b { color: #ecfdf5; font-weight: 700; }
+  .hero .daily .dmeta { color: #a7f3d0; opacity: .85; }
 
   .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
   @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
@@ -256,6 +266,20 @@
               <button type="button" data-period="annual">Annual</button>
             </span>
           </div>
+        </div>
+
+        <div class="field">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label>Working Days / Month</label>
+              <div class="input-line"><input type="number" inputmode="decimal" id="workDays" step="1" /></div>
+            </div>
+            <div>
+              <label>Service Advisors</label>
+              <div class="input-line"><input type="number" inputmode="decimal" id="advisors" step="1" /></div>
+            </div>
+          </div>
+          <div class="hint">Used for the per-advisor daily pace shown in the goal card.</div>
         </div>
 
         <div class="divider"></div>
@@ -340,6 +364,7 @@
           <div class="amount" id="goalAmount">$0</div>
           <div class="sub" id="goalSub">per month</div>
           <div class="mo" id="goalCheck">On target ✓</div>
+          <div class="daily" id="dailyLine"></div>
         </div>
       </div>
 
@@ -392,6 +417,8 @@
     laborGP: 72,        // %
     partsGP: 38,        // %
     partsToLabor: 90,   // %
+    workDays: 25,       // working days / month
+    advisors: 1,        // service advisors
     R: 400,             // ROs / month
     H: 1.2,             // hours per RO
     E: 100,             // ELR $
@@ -499,6 +526,23 @@
       ? 'Plan yields ' + usd(totalGP) + (period === 'annual' ? ' / mo' : '') + ' — on target ✓'
       : 'Adjust the drivers to reach the goal';
 
+    // --- Daily pace, per advisor ---
+    const D = parseFloat(el('workDays').value) || 0;
+    const N = parseFloat(el('advisors').value) || 0;
+    const per = D * N;
+    if (per > 0 && isFinite(R) && isFinite(hours)) {
+      el('dailyLine').innerHTML =
+        '<span class="dhead">Daily pace — per advisor</span>' +
+        '<b>' + num(hours / per, 1) + '</b> hrs · ' +
+        '<b>' + num(R / per, 1) + '</b> ROs · ' +
+        '<b>' + usd(laborSales / per) + '</b> labor sold · ' +
+        '<b>' + usd(totalGP / per) + '</b> GP ' +
+        '<span class="dmeta">/ day &nbsp;(' + num(D) + ' days · ' + num(N) +
+        ' advisor' + (N === 1 ? '' : 's') + ')</span>';
+    } else {
+      el('dailyLine').innerHTML = '';
+    }
+
     // --- KPI cards ---
     el('kR').textContent = isFinite(R) ? num(R, 0) : '–';
     el('kH').textContent = isFinite(H) ? num(H, 2) : '–';
@@ -546,6 +590,8 @@
     el('laborGP').value = DEFAULTS.laborGP;
     el('partsGP').value = DEFAULTS.partsGP;
     el('partsToLabor').value = DEFAULTS.partsToLabor;
+    el('workDays').value = DEFAULTS.workDays;
+    el('advisors').value = DEFAULTS.advisors;
     el('sliderR').value = DEFAULTS.R;
     el('sliderH').value = DEFAULTS.H;
     el('sliderE').value = DEFAULTS.E;
@@ -555,7 +601,7 @@
   }
 
   // Wiring
-  ['target', 'laborGP', 'partsGP', 'partsToLabor'].forEach(id =>
+  ['target', 'laborGP', 'partsGP', 'partsToLabor', 'workDays', 'advisors'].forEach(id =>
     el(id).addEventListener('input', render));
   el('sliderR').addEventListener('input', e => { R = parseFloat(e.target.value) || 0; render(); });
   el('sliderH').addEventListener('input', e => { H = parseFloat(e.target.value) || 0; render(); });
