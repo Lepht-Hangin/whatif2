@@ -166,6 +166,19 @@
   .driver.solved .driver-name { color: var(--text); }
   .driver-val { font-size: 20px; font-weight: 700; margin-top: 2px; }
   .driver.solved .driver-val { color: var(--accent-2); }
+  .driver-value { display: flex; align-items: baseline; gap: 4px; margin-top: 2px; }
+  .dv-input {
+    width: 116px; background: transparent; border: 1px solid transparent; border-radius: 7px;
+    color: var(--text); font-size: 20px; font-weight: 700; padding: 2px 4px; outline: none;
+    -moz-appearance: textfield; transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .dv-input::-webkit-outer-spin-button, .dv-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .dv-input:not([readonly]) { border-color: var(--border); background: var(--input-bg); }
+  .dv-input:not([readonly]):hover { border-color: var(--muted); }
+  .dv-input:not([readonly]):focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,.15); }
+  .dv-input[readonly] { cursor: default; border-color: transparent; background: transparent; }
+  .driver.solved .dv-input { color: var(--accent-2); }
+  .dv-unit { font-size: 13px; color: var(--muted); font-weight: 600; }
   .solve-btn {
     flex: none; border: 1px solid var(--border); background: transparent; color: var(--muted);
     font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
@@ -311,14 +324,16 @@
         </div>
 
         <div class="divider"></div>
-        <div class="section-label">Drivers — tap “Solve” on the one to calculate, slide the rest</div>
+        <div class="section-label">Drivers — tap “Solve” on the one to calculate, type or slide the rest</div>
 
         <!-- RO Count -->
         <div class="driver" id="driverR">
           <div class="driver-top">
             <div>
               <div class="driver-name">C.P. RO Count / Month</div>
-              <div class="driver-val" id="valR">–</div>
+              <div class="driver-value">
+                <input type="number" class="dv-input" id="inR" inputmode="decimal" step="1" min="0" />
+              </div>
             </div>
             <button type="button" class="solve-btn" data-solve="R">Solve</button>
           </div>
@@ -331,7 +346,10 @@
           <div class="driver-top">
             <div>
               <div class="driver-name">Hours per RO</div>
-              <div class="driver-val" id="valH">–</div>
+              <div class="driver-value">
+                <input type="number" class="dv-input" id="inH" inputmode="decimal" step="0.05" min="0" />
+                <span class="dv-unit">hrs</span>
+              </div>
             </div>
             <button type="button" class="solve-btn" data-solve="H">Solve</button>
           </div>
@@ -344,7 +362,10 @@
           <div class="driver-top">
             <div>
               <div class="driver-name">Effective Labor Rate (ELR)</div>
-              <div class="driver-val" id="valE">–</div>
+              <div class="driver-value">
+                <span class="dv-unit">$</span>
+                <input type="number" class="dv-input" id="inE" inputmode="decimal" step="1" min="0" />
+              </div>
             </div>
             <button type="button" class="solve-btn" data-solve="E">Solve</button>
           </div>
@@ -445,15 +466,9 @@
   let period = DEFAULTS.period;
 
   const drivers = {
-    R: { row: 'driverR', slider: 'sliderR', val: 'valR', note: 'noteR', max: 2000 },
-    H: { row: 'driverH', slider: 'sliderH', val: 'valH', note: 'noteH', max: 4 },
-    E: { row: 'driverE', slider: 'sliderE', val: 'valE', note: 'noteE', max: 300 }
-  };
-
-  const fmtDriver = {
-    R: v => num(v, 0),
-    H: v => num(v, 2) + ' hrs',
-    E: v => usdRate(v)
+    R: { row: 'driverR', slider: 'sliderR', input: 'inR', note: 'noteR', max: 2000 },
+    H: { row: 'driverH', slider: 'sliderH', input: 'inH', note: 'noteH', max: 4 },
+    E: { row: 'driverE', slider: 'sliderE', input: 'inE', note: 'noteE', max: 300 }
   };
 
   function rates() {
@@ -512,7 +527,13 @@
       el(c.slider).disabled = isSolved;
       el(c.slider).value = isFinite(v) ? Math.min(Math.max(v, 0), c.max) : 0;
       el(c.row).querySelector('.solve-btn').textContent = isSolved ? 'Solving' : 'Solve';
-      el(c.val).textContent = isFinite(v) ? fmtDriver[key](v) : '–';
+      // The solved driver is calculated (read-only); the others are typeable.
+      const inp = el(c.input);
+      inp.readOnly = isSolved;
+      // Don't clobber the field the user is actively typing in.
+      if (inp !== document.activeElement) {
+        inp.value = isFinite(v) ? Number(v.toFixed(2)) : '';
+      }
       el(c.note).textContent = isSolved ? solveNote : '';
     }
 
@@ -596,8 +617,12 @@
     el('sliderH').value = DEFAULTS.H;
     el('sliderE').value = DEFAULTS.E;
     R = DEFAULTS.R; H = DEFAULTS.H; E = DEFAULTS.E;
-    setPeriod(DEFAULTS.period);
-    setSolveFor(DEFAULTS.solveFor);
+    // Set mode/period before rendering so the reset render solves the right driver.
+    period = DEFAULTS.period;
+    solveFor = DEFAULTS.solveFor;
+    document.querySelectorAll('#periodToggle button').forEach(b =>
+      b.classList.toggle('active', b.dataset.period === period));
+    render();
   }
 
   // Wiring
@@ -606,6 +631,9 @@
   el('sliderR').addEventListener('input', e => { R = parseFloat(e.target.value) || 0; render(); });
   el('sliderH').addEventListener('input', e => { H = parseFloat(e.target.value) || 0; render(); });
   el('sliderE').addEventListener('input', e => { E = parseFloat(e.target.value) || 0; render(); });
+  el('inR').addEventListener('input', e => { R = parseFloat(e.target.value) || 0; render(); });
+  el('inH').addEventListener('input', e => { H = parseFloat(e.target.value) || 0; render(); });
+  el('inE').addEventListener('input', e => { E = parseFloat(e.target.value) || 0; render(); });
   document.querySelectorAll('.solve-btn').forEach(b =>
     b.addEventListener('click', () => setSolveFor(b.dataset.solve)));
   document.querySelectorAll('#periodToggle button').forEach(b =>
